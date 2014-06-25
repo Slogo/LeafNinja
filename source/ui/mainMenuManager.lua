@@ -24,12 +24,14 @@ mainMenuManager.hasSavedGame = function()
 	return false
 end
 
+-- Handles the New Game option
 love.handlers.selectNewGame = function()
   mainMenuManager.view:hide()
   world:initialize()
   world:loadLevel("test")
 end
 
+-- Handles the Continue option
 love.handlers.loadSavedGame = function()
   mainMenuManager.view:hide()
 end

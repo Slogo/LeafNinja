@@ -15,9 +15,20 @@ local playerController = {
 }
 
 playerController.initialize = function(this, entity)
-  
+  world.camera.mode = world.camera.targetFreely
+  world.camera:setFocalEntity(entity)
 end
 
 playerController.update = function(this, entity, dt)
-  if(inputManager.getAction()
+
+  --DEBUG TEST MOVEMENT
+  if love.keyboard.isDown("a") then
+    entity.velocity.x = -40
+  elseif love.keyboard.isDown("d") then
+    entity.velocity.x = 40
+  else
+    entity.velocity.x = 0
+  end
 end
+
+return playerController

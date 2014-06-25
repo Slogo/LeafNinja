@@ -1,10 +1,15 @@
 require("uimanager/uimanager")
 require("hitboxer/hitboxes") --Library for handling animations and hitboxes
+require("debug/logger")
 
 require("lang/lang") -- Language Strings
 require("ui/uiConstants") --UI Constants
 
 require("world/world")
+
+
+--DEBUG LOGGING LEVEL
+logger.level = logger.DEBUG
 
 local mainMenuManager = require("ui/mainMenuManager")
 

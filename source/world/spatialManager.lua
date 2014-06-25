@@ -1,6 +1,5 @@
 local SpacialManager = {
   cellSize = 0,
-  currentFrame = 0,
   buckets = {},
   width = 0,
   height = 0
@@ -9,16 +8,17 @@ local SpacialManager = {
 SpacialManager.initializeBuckets = function(this, cellSize, width, height)
   local rows = math.ceil(width / cellSize)
   local columns = math.ceil(height / cellSize)
-  local index 
+  local index
   for index = 0, rows * columns, 1 do
-    this.buckets[index] = {frame = -1, items = {}}
+    this.buckets[index] = {}
   end
 end
 
-SpacialManager.emptyBucket = function(this, bucket, currentFrame)
-  bucket.frame = currentFrame
-  for k,v in pairs(bucket.items) do bucket[k]=nil end
-end 
+SpacialManager.emptyBuckets = function(this)
+  for i,bucket in pairs(this.buckets) do
+    for j in pairs(bucket) do bucket[j]=nil end
+  end
+end
 
 SpacialManager.getBucket = function(this, x, y)
   return this.buckets[Math.floor(x / cellSize) + Math.floor(y / cellSize) * this.width]
@@ -37,14 +37,7 @@ SpacialManager.addObjectToMap = function(this, id, rectangle, parent)
 end
 
 SpacialManager.addObjectToBucket = function(this, bucket, id, wrappedObject)
-  if this.currentFrame ~= bucket.frame then
-    this:emptyBucket(this, bucket, currentFrame)
-  end
-  bucket.items[entity.id] = wrappedObject --Just overwrite the object if it already exists
-end
-
-SpacialManager.update = function(this, dt)
-  this.currentFrame = this.currentFrame + 1
+  bucket[entity.id] = wrappedObject --Just overwrite the object if it already exists
 end
 
 return SpacialManager

@@ -21,6 +21,7 @@ world.initialize = function(this)
   this.spatialManager = require("world/spatialManager")
   this.gridMap = require("world/gridMap")
   this.camera = require("libs/lovethecamera")
+  this.entityFactory = require("entity/entityFactory")
 
   this.camera.viewport.width = CAMERA.WIDTH
   this.camera.viewport.height = CAMERA.HEIGHT
@@ -36,12 +37,12 @@ world.initialize = function(this)
   this.camera.easeDuration = CAMERA.EASE_DURATION
 end
 
-world.addEntity = function(this, id, entity) 
-  this.entities[id] = entity
+world.getEntity = function(this, id)
+  return this.entities[id]
 end
 
-world.getEntity = function(this, id)
-  return this.entitiesToAdd[id]
+world.addEntity = function(this, entity)
+  table.insert(this.entitiesToAdd, entity)
 end
 
 world.removeEntity = function(this, id)
@@ -49,32 +50,20 @@ world.removeEntity = function(this, id)
 end
 
 world.loadLevel = function(this, level)
-  print("Loading Level: " .. level)
+  logger.log("Loading Level: " .. level, logger.INFO)
   this.levelName = level
   this.update = this.levelUpdate --Defer load until next frame
 end
 
 world.loadLevelCompleted = function(this, level)
-  print("Level Loaded complete")
+  logger.log("Level Loaded complete", logger.DEBUG)
   this.levelData = level
   this.switchLevels = true
 end
 
-world.levelUpdate = function(this, dt)
-  print("level Update!")
-  local levelData = resources.level.load(this.levelName)
-  this.entities = {}
-  this.entitiesToAdd = {}
-  this.entitiesToRemove = {}
-  this.spatialManager:initializeBuckets(256, levelData.columns * levelData.tileSize, levelData.rows * levelData.tileSize)
-  this.gridMap:processTiles(levelData.tileSize, levelData.rows, levelData.columns, levelData.tiles)
-  this.camera.bounds.x = levelData.tileSize * levelData.columns
-  this.camera.bounds.y = levelData.tileSize * levelData.rows
-  this.update = this.worldUpdate
-  print(levelData.tileSize .. " " .. levelData.tileSize)
-end
-
-world.worldUpdate = function(this, dt)
+--Process the add and remove entity steps. Takes entities
+--marked for addition or removal and actually performs the addition/removal
+world.processEntitiesToAddAndRemove = function(this)
   for index, id in pairs(this.entitiesToRemove) do
     this.entities[id] = nil
   end
@@ -82,10 +71,44 @@ world.worldUpdate = function(this, dt)
   for id, entity in ipairs(this.entitiesToAdd) do
     this.entities[id] = entity
   end
-
-  this.spatialManager:update(dt)
 end
 
+--[[
+-- Update Methods.
+]]--
+
+--Update to handle loading a new level. Done here to defer the level until
+--the next frame step
+world.levelUpdate = function(this, dt)
+  local levelData = resources.level.load(this.levelName)
+  this.entities = {}
+  this.entitiesToAdd = {}
+  this.entitiesToRemove = {}
+  this.spatialManager:initializeBuckets(256, levelData.columns * levelData.tileSize, levelData.rows * levelData.tileSize)
+  this.gridMap:processTiles(levelData.tileSize, levelData.rows, levelData.columns, levelData.tiles)
+  this.entityFactory:initialize()
+  this.camera.bounds.x = levelData.tileSize * levelData.columns
+  this.camera.bounds.y = levelData.tileSize * levelData.rows
+  this.update = this.worldUpdate
+
+  this.entityFactory:processEntities(levelData.entities)
+  this:processEntitiesToAddAndRemove()
+end
+
+--Core world update run during the game. Updates all entities
+--and other aspects of the game world.
+world.worldUpdate = function(this, dt)
+  this.camera:update(dt)
+  this:processEntitiesToAddAndRemove()
+  this.spatialManager:emptyBuckets()
+
+  for i, entity in pairs(this.entities) do
+    entity:update(dt)
+    this.gridMap:checkCollisions(entity)
+  end
+end
+
+--Empty initial update
 world.update = function(this, dt)
   --do nothing in uninitialized state
 end
@@ -93,6 +116,10 @@ end
 world.draw = function(this)
   if this.gridMap then
     this.gridMap:draw()
+  end
+
+  for i, entity in pairs(this.entities) do
+    entity:draw()
   end
 end
 
